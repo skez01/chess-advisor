@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chess Move Advisor — your opponent moves, it tells you what to play</title>
+<meta name="description" content="A free desktop chess assistant. Enter your opponent's move and get the best reply, powered by Stockfish with an opening book and live evaluation.">
+<style>
+:root{--bg:#f6f5f1;--fg:#1b1c20;--card:#fff;--mut:#5c6370;--bd:#e2dfd6;--acc:#2563eb;--acc2:#16a34a;--code:#14161b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1014;--fg:#ececf0;--card:#1a1c22;--mut:#9aa0aa;--bd:#2a2d35;--acc:#4f9cf9;--acc2:#4ade80}}
+:root[data-theme="dark"]{--bg:#0f1014;--fg:#ececf0;--card:#1a1c22;--mut:#9aa0aa;--bd:#2a2d35;--acc:#4f9cf9;--acc2:#4ade80}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55}
+a{color:var(--acc)}
+.w{max-width:1040px;margin:0 auto;padding:0 20px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+nav b{font-size:1.1rem}nav a{text-decoration:none;color:var(--fg);margin-left:18px;font-size:.95rem}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:36px 0 56px}
+h1{font-size:clamp(2rem,5vw,3.2rem);line-height:1.1;margin:0 0 16px;letter-spacing:-.02em}
+h1 span{color:var(--acc)}
+.lead{font-size:1.15rem;color:var(--mut);margin:0 0 26px;max-width:34em}
+.btn{display:inline-block;padding:12px 22px;border-radius:10px;font-weight:600;text-decoration:none;margin:0 10px 10px 0;border:1px solid var(--bd);color:var(--fg);background:var(--card)}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.mock{display:flex;gap:8px;background:#1e2025;padding:12px;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.bar{width:14px;border-radius:4px;background:linear-gradient(#3a3a3a 44%,#f1f1f1 44%)}
+.bd{position:relative;flex:1;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);border-radius:6px;overflow:hidden}
+.sq{display:flex;align-items:center;justify-content:center;font-size:clamp(18px,4.6vw,40px);line-height:1}
+.l{background:#eeeed2}.d{background:#769656}.hl{background:#bbcb2b}
+.wp{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000}.bp{color:#111}
+.bd svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.tip{margin-top:10px;color:#e8e8ea;background:#2a2d35;border-radius:10px;padding:10px 14px;font-size:.9rem}
+.tip b{display:block;color:#4ade80;font-size:1.25rem}
+.tip small{color:#9aa0aa}
+section{padding:48px 0}
+h2{font-size:1.8rem;margin:0 0 8px;letter-spacing:-.01em}
+.sub{color:var(--mut);margin:0 0 28px;max-width:40em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:20px}
+.card h3{margin:0 0 6px;font-size:1.05rem}.card p{margin:0;color:var(--mut);font-size:.95rem}
+.ic{font-size:1.6rem;display:block;margin-bottom:8px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.step{counter-increment:s;background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:20px;position:relative}
+.step::before{content:counter(s);display:flex;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;align-items:center;justify-content:center;font-weight:700;margin-bottom:10px}
+.step h3{margin:0 0 4px}.step p{margin:0;color:var(--mut);font-size:.95rem}
+.code{position:relative;background:var(--code);color:#e6e6e6;border-radius:12px;padding:16px 56px 16px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88rem;overflow-x:auto;white-space:pre;margin:0 0 14px}
+.cp{position:absolute;top:10px;right:10px;background:#2a2d35;color:#e6e6e6;border:0;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.8rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:6px 14px;font-size:.9rem}
+.note{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--acc);border-radius:10px;padding:16px 20px;color:var(--mut)}
+details{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}details p{margin:10px 0 0;color:var(--mut)}
+footer{border-top:1px solid var(--bd);margin-top:30px;padding:28px 0 40px;color:var(--mut);font-size:.92rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media(max-width:820px){.hero{grid-template-columns:1fr}nav a.h{display:none}}
+</style>
+</head>
+<body>
+<div class="w">
+<nav><b>♞ Chess Move Advisor</b><div><a class="h" href="#features">Features</a><a class="h" href="#install">Install</a><a class="h" href="#faq">FAQ</a><a href="https://github.com/skez01/chess-advisor">GitHub</a></div></nav>
+
+<header class="hero">
+<div>
+<h1>Your opponent moves.<br><span>It tells you what to play.</span></h1>
+<p class="lead">A free desktop chess assistant. Enter your opponent's move, get the best reply in moments. Powered by Stockfish, with an opening book, a live evaluation bar and opening names.</p>
+<a class="btn p" href="https://github.com/skez01/chess-advisor">Get it on GitHub</a>
+<a class="btn" href="#install">Install guide</a>
+</div>
+<div>
+<div class="mock" aria-label="Preview of the app">
+<div class="bar"></div>
+<div class="bd" id="b"><svg viewBox="0 0 8 8"><defs><marker id="ah" markerWidth="4" markerHeight="4" refX="2.2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4Z" fill="#4f9cf9"/></marker></defs><line x1="5.5" y1="7.5" x2="2.75" y2="4.75" stroke="#4f9cf9" stroke-width=".22" stroke-linecap="round" marker-end="url(#ah)"/></svg></div>
+</div>
+<div class="tip"><b>Play Bc4</b>Book move: Italian Game — engine agrees<br><small>Eval +0.31 for you · depth 24 · 2.1M nodes/s</small></div>
+</div>
+</header>
+
+<section id="features">
+<h2>Everything you need at the board</h2>
+<p class="sub">Built with Python, Tkinter and python-chess. Runs on Windows, macOS and Linux.</p>
+<div class="grid">
+<div class="card"><span class="ic">⚡</span><h3>Fast, live analysis</h3><p>The suggestion appears almost instantly and keeps improving as the engine searches deeper.</p></div>
+<div class="card"><span class="ic">🏆</span><h3>Stockfish powered</h3><p>Uses all your CPU cores and a large hash. Add endgame tablebases for perfect endgames.</p></div>
+<div class="card"><span class="ic">📖</span><h3>Opening book</h3><p>48 lines across 20 openings, transposition-aware, plus optional Polyglot master-game books.</p></div>
+<div class="card"><span class="ic">📊</span><h3>Evaluation bar</h3><p>See who's ahead at a glance, plus a prediction of your opponent's likely reply.</p></div>
+<div class="card"><span class="ic">🎯</span><h3>Choose your style</h3><p>Steer into the Sicilian, London, Queen's Gambit and more, or let the engine decide.</p></div>
+<div class="card"><span class="ic">🎨</span><h3>Clean dark UI</h3><p>Four board themes, move highlights, legal-move dots, and click-or-type move entry.</p></div>
+</div>
+</section>
+
+<section>
+<h2>How it works</h2>
+<p class="sub">Use it alongside any game, real or online.</p>
+<div class="steps">
+<div class="step"><h3>Pick your side</h3><p>Choose White or Black when the app opens.</p></div>
+<div class="step"><h3>Enter their move</h3><p>Click the board or type it: <code>e4</code>, <code>Nf3</code>, <code>O-O</code>.</p></div>
+<div class="step"><h3>Get your move</h3><p>A blue arrow shows the best reply, with the evaluation and depth.</p></div>
+<div class="step"><h3>Repeat</h3><p>Play it, enter their answer, and keep going. Undo any mistake.</p></div>
+</div>
+</section>
+
+<section id="install">
+<h2>Install in a minute</h2>
+<p class="sub">Needs Python 3.8+. For full strength, add <a href="https://stockfishchess.org/download/">Stockfish</a> to the folder.</p>
+<div class="code" data-c>git clone https://github.com/skez01/chess-advisor.git
+cd chess-advisor
+pip install -r requirements.txt
+python chess_advisor.py<button class="cp">Copy</button></div>
+<p class="sub" style="margin-bottom:10px">Power users can tune the engine:</p>
+<div class="code" data-c>python chess_advisor.py --threads 8 --hash 2048 --tablebases ~/syzygy --book master.bin<button class="cp">Copy</button></div>
+</section>
+
+<section>
+<h2>Openings it knows</h2>
+<p class="sub">Name detection works even when games transpose.</p>
+<div class="chips"><span>Italian Game</span><span>Ruy Lopez</span><span>Scotch</span><span>King's Gambit</span><span>Vienna</span><span>Sicilian</span><span>French</span><span>Caro-Kann</span><span>Scandinavian</span><span>Pirc</span><span>Queen's Gambit</span><span>Slav</span><span>Catalan</span><span>King's Indian</span><span>Grünfeld</span><span>Nimzo-Indian</span><span>Dutch</span><span>London System</span><span>English</span><span>Réti</span></div>
+</section>
+
+<section id="faq">
+<h2>FAQ</h2>
+<details><summary>Will it never lose?</summary><p>No engine can promise that. Chess isn't solved, and top engines still draw each other often. Stockfish at full strength is far stronger than any human, but results also depend on entering moves correctly.</p></details>
+<details><summary>Do I need Stockfish?</summary><p>It works without it using a weaker built-in engine, but for the best advice download Stockfish and unzip it into the project folder. The app finds it automatically.</p></details>
+<details><summary>Is it free?</summary><p>Yes. It's open source under the MIT license.</p></details>
+<details><summary>Can I use it in online games?</summary><p>Check the rules of the site or tournament you play on. Many forbid outside engine assistance. It's best used for analysis, practice and over-the-board study.</p></details>
+</section>
+
+<footer><span>Made by <a href="https://github.com/skez01">skez01</a> · MIT License</span><a href="https://github.com/skez01/chess-advisor">View source on GitHub →</a></footer>
+</div>
+<script>
+(function(){
+var fen="r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R",G={p:"♟",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"},b=document.getElementById("b"),h="";
+var rows=fen.split("/"),hl={"f1":1,"c4":1};
+rows.forEach(function(row,r){var f=0;row.split("").forEach(function(ch){
+if(/\d/.test(ch)){for(var i=0;i<+ch;i++){h+=sq(f++,r,"")}}else{h+=sq(f++,r,ch)}})});
+function sq(f,r,ch){var light=(f+r)%2===0,n="abcdefgh"[f]+(8-r),c=(light?"l":"d")+(hl[n]?" hl":"");
+var p=ch?'<span class="'+(ch===ch.toUpperCase()?"wp":"bp")+'">'+G[ch.toLowerCase()]+"</span>":"";
+return '<div class="sq '+c+'">'+p+"</div>"}
+b.insertAdjacentHTML("afterbegin",h);
+document.querySelectorAll("[data-c]").forEach(function(el){var btn=el.querySelector(".cp");
+btn.onclick=function(){var t=el.textContent.replace(btn.textContent,"").trim();
+try{navigator.clipboard.writeText(t).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)})}catch(e){}}});
+})();
+</script>
+</body>
+</html>
