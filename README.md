@@ -65,3 +65,5 @@ Edit the `OPENINGS` list near the top of `chess_advisor.py`. Each entry is
 ## License
 
 MIT © [skez01](https://github.com/skez01)
+<img width="1774" height="1285" alt="image" src="https://github.com/user-attachments/assets/280063b9-abe4-4054-8b85-fe8385ad34a8" />
+*can beat magnus carlson bot on fast mode on chess.com*
